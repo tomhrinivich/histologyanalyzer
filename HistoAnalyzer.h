@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "sqlite3.h"
 #include "itkImage.h"
+#include "itkImageFileReader.h"
 
 class HistoAnalyzer {
 
@@ -17,10 +18,16 @@ class HistoAnalyzer {
 
 public:
 
+	typedef double VoxelType;
+	typedef itk::Image<VoxelType, 3> ImageType;
+
+public:
+
 	HistoAnalyzer(std::string indir, std::string dbpath, std::string outdir);
 
+	bool GetVoxels();
 	bool ReadDBMaps();
-
+	ImageType::Pointer ReadImageMap(std::string mappath);
 	bool ReadSlidesDicoms();
 
 };

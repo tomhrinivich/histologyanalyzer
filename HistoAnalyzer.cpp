@@ -6,7 +6,6 @@ HistoAnalyzer::HistoAnalyzer(std::string indir, std::string dbpath, std::string 
 	outdir(outdir){
 }
 
-
 bool HistoAnalyzer::ReadDBMaps() {
 
 	//open the sqlite db
@@ -75,6 +74,32 @@ bool HistoAnalyzer::ReadDBMaps() {
 
 	sqlite3_finalize(stmt);
 	sqlite3_close(db);
+
+	return true;
+
+}
+
+HistoAnalyzer::ImageType::Pointer HistoAnalyzer::ReadImageMap(std::string mappath) {
+
+	typedef itk::ImageFileReader<HistoAnalyzer::ImageType> ReaderType;
+	ReaderType::Pointer reader = ReaderType::New();
+
+	reader->SetFileName(mappath);
+	reader->Update();
+	
+	return reader->GetOutput();
+
+}
+
+bool HistoAnalyzer::GetVoxels() {
+
+	HistoAnalyzer::ImageType::Pointer img = HistoAnalyzer::ImageType::New();
+
+	for (int i = 0; i < mapnames.size(); i++) {
+
+		img = HistoAnalyzer::ReadImageMap(mappaths[i]);
+
+	}
 
 	return true;
 

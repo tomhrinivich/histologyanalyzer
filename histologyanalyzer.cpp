@@ -8,7 +8,7 @@ int main(int argc, char* argv[]) {
 
 	if (argc < 4)
 	{
-		cerr << "Usage: " << argv[0] << " DicomDirectory OutputDirectory DatabasePath" << endl;
+		cerr << "Usage: " << argv[0] << " ContourDicomDirectory DatabasePath OutputDirectory" << endl;
 		return EXIT_FAILURE;
 	}
 
@@ -21,6 +21,15 @@ int main(int argc, char* argv[]) {
 	}
 	else {
 		cout << "\tReading complete." << endl;
+	}
+
+	cout << "Analyzing voxels..." << endl;
+	if (!ha.GetVoxels()) {
+		cout << "\tAnalysis failed." << endl;
+		return EXIT_FAILURE;
+	}
+	else {
+		cout << "\tAnalysis complete." << endl;
 	}
 
 	return EXIT_SUCCESS;
