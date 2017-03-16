@@ -1,0 +1,5 @@
+include (GenerateExportHeader)
+add_compiler_export_flags()
+add_library (sqlite3 STATIC sqlite3.c)
+generate_export_header(sqlite3 BASE_NAME sqlite3 EXPORT_MACRO_NAME sqlite3_EXPORT EXPORT_FILE_NAME sqlite3_Export.h STATIC_DEFINE sqlite3_BUILT_AS_STATIC)
+target_include_directories (sqlite3 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
