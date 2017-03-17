@@ -152,7 +152,12 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 			ind0 = rgbimageiterator.GetIndex();
 
 			if(ind0[1] <= 1600) {
-				if (v[0] == 51 && v[1] == 51 && v[2] == 51) {
+				if (v[0] == 0 && v[1] == 0 && v[2] == 0) {
+					img_s->TransformIndexToPhysicalPoint(ind0, p);
+					mask->TransformPhysicalPointToIndex(p, ind1);
+					mask->SetPixel(ind1, 0);
+				}
+				else if (v[0] == 51 && v[1] == 51 && v[2] == 51) {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
 					mask->TransformPhysicalPointToIndex(p, ind1);
 					mask->SetPixel(ind1, 1);
@@ -162,25 +167,30 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 					mask->TransformPhysicalPointToIndex(p, ind1);
 					mask->SetPixel(ind1, 2);
 				}
+				else if (
+					(v[0] == 0 && v[1] == 255 && v[2] == 0) ||
+					(v[0] == 128 && v[1] == 255 && v[2] == 128) ||
+					(v[0] == 115 && v[1] == 115 && v[2] == 0) ||
+					(v[0] == 166 && v[1] == 166 && v[2] == 0) ||
+					(v[0] == 255 && v[1] == 255 && v[2] == 0) ||
+					(v[0] == 255 && v[1] == 255 && v[2] == 102) ||
+					(v[0] == 0 && v[1] == 0 && v[2] == 179) ||
+					(v[0] == 26 && v[1] == 26 && v[2] == 255) ||
+					(v[0] == 102 && v[1] == 102 && v[2] == 255)
+					) {
+					img_s->TransformIndexToPhysicalPoint(ind0, p);
+					mask->TransformPhysicalPointToIndex(p, ind1);
+					mask->SetPixel(ind1, 3);
+				}
 				else if (v[0] == 128 && v[1] == 128 && v[2] == 128) {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
 					mask->TransformPhysicalPointToIndex(p, ind1);
 					mask->SetPixel(ind1, 4);
 				}
-				else if (v[0] == 0 && v[1] == 0 && v[2] == 0) {
-					img_s->TransformIndexToPhysicalPoint(ind0, p);
-					mask->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind1, 0);
-				}
-				else if (v[0] > 0 || v[1] > 0 || v[2] > 0) {
-					img_s->TransformIndexToPhysicalPoint(ind0, p);
-					mask->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind1, 1);
-				}
 				else {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
 					mask->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind1, 0);
+					mask->SetPixel(ind1, 1);
 				}
 			}
 
@@ -203,12 +213,16 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 		switch (v) {
 		case 1:
 			np.push_back(maskiterator.GetIndex());
+			break;
 		case 2:
 			g6.push_back(maskiterator.GetIndex());
+			break;
 		case 3:
 			g7.push_back(maskiterator.GetIndex());
+			break;
 		case 4:
 			pin.push_back(maskiterator.GetIndex());
+			break;
 		}
 
 		++maskiterator;
@@ -222,13 +236,48 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 bool HistoAnalyzer::WriteVoxelArrays() {
 
 	//allocate memory to hold voxel values
+	if (g6.size() > 10) vg6 = (float*)calloc(g6.size(), sizeof(float));
+	if (g7.size() > 10) vg7 = (float*)calloc(g7.size(), sizeof(float));
+	if (np.size() > 10) vnp = (float*)calloc(np.size(), sizeof(float));
+	if (pin.size() > 10) vpin = (float*)calloc(pin.size(), sizeof(float));
 
+	float mg6, mg7, mpin, mnp, sg6, sg7, spin, snp;
 
 	for (int i = 0; i < mapnames.size(); i++) {
 
 		HistoAnalyzer::ImageType::Pointer img = HistoAnalyzer::ReadImageMap(mappaths[i]);
 
-		//calculate mean values + SD
+		if (g6.size() > 10) {
+			for (int i = 0; i < g6.size(); i++) {
+				vg6[i] = img->GetPixel(g6[i]);
+			}
+			mg6 = HistoAnalyzer::Mean<float>(vg6, g6.size());
+			sg6 = HistoAnalyzer::STD<float>(vg6, g6.size(), mg6);
+		}
+
+		if (g7.size() > 10) {
+			for (int i = 0; i < g7.size(); i++) {
+				vg7[i] = img->GetPixel(g7[i]);
+			}
+			mg7 = HistoAnalyzer::Mean<float>(vg7, g7.size());
+			sg7 = HistoAnalyzer::STD<float>(vg7, g7.size(), mg7);
+		}
+
+		if (np.size() > 10) {
+			for (int i = 0; i < np.size(); i++) {
+				vnp[i] = img->GetPixel(np[i]);
+			}
+			mnp = HistoAnalyzer::Mean<float>(vnp, np.size());
+			snp = HistoAnalyzer::STD<float>(vnp, np.size(), mnp);
+		}
+
+		if (pin.size() > 10) {
+			for (int i = 0; i < pin.size(); i++) {
+				vpin[i] = img->GetPixel(pin[i]);
+			}
+			mpin = HistoAnalyzer::Mean<float>(vpin, pin.size());
+			spin = HistoAnalyzer::STD<float>(vpin, pin.size(), mpin);
+		}
 
 		//write voxel values to disk
 
@@ -270,4 +319,21 @@ HistoAnalyzer::ImageType::Pointer HistoAnalyzer::ReadImageMap(std::string mappat
 
 	return reader->GetOutput();
 
+}
+
+template<class T> T HistoAnalyzer::Mean(T* voxels, size_t nvoxels) {
+	float cumsum = 0;
+	for (int j = 0; j < nvoxels; j++) {
+		cumsum += (float)voxels[j];
+	}
+	float mean = cumsum / (float)nvoxels;
+	return (T)mean;
+}
+
+template<class T> T HistoAnalyzer::STD(T* voxels, size_t nvoxels, T mean) {
+	T cumsum = 0;
+	for (int j = 0; j < nvoxels; j++) {
+		cumsum += pow(voxels[j] - mean, 2.0);
+	}
+	return sqrt(cumsum / (nvoxels - 1));
 }

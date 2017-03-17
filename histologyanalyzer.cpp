@@ -32,6 +32,15 @@ int main(int argc, char* argv[]) {
 		cout << "\tRead complete." << endl;
 	}
 
+	cout << "Writing parameter arrays..." << endl;
+	if (!ha.WriteVoxelArrays()) {
+		cout << "\tWrite failed." << endl;
+		return EXIT_FAILURE;
+	}
+	else {
+		cout << "\tWrite complete." << endl;
+	}
+
 	cout << "Writing histology mask image..." << endl;
 	if (!ha.WriteImageMask()) {
 		cout << "\tWrite failed." << endl;

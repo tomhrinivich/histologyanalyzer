@@ -36,5 +36,7 @@ public:
 	bool WriteImageMask();
 
 	ImageType::Pointer ReadImageMap(std::string mappath);
+	template<class T> T Mean(T* voxels, size_t nvoxels);
+	template<class T> T STD(T* voxels, size_t nvoxels, T mean);
 
 };
