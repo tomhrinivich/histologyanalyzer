@@ -5,21 +5,28 @@
 #include "sqlite3.h"
 #include "itkImage.h"
 #include "itkImageFileReader.h"
+#include "itkImageFileWriter.h"
+#include "itkGDCMImageIO.h"
+#include "itkImageRegionIterator.h"
+#include "gdcmScanner.h"
+#include "gdcmReader.h"
 
 class HistoAnalyzer {
 
-	std::string indir, dbpath, outdir;
 
-	std::vector<std::string> slidepaths, mapnames, mappaths;
-	size_t nslides, nmaps;
-
-	float *v0, *v1;
-	size_t n0, n1;
 
 public:
 
 	typedef double VoxelType;
 	typedef itk::Image<VoxelType, 3> ImageType;
+
+private:
+	std::string indir, dbpath, outdir;
+
+	std::vector<std::string> slidepaths, mapnames, mappaths;
+	std::vector<ImageType::IndexType> g6, g7, pin, np;
+
+	float *vg6, *vg7, *vpin, *vnp;
 
 public:
 
@@ -27,7 +34,8 @@ public:
 
 	bool GetVoxels();
 	bool ReadDBMaps();
+	bool ReadImageHistoDicoms(ImageType::Pointer img, std::string mapname, float *v0, size_t *n0);
+
 	ImageType::Pointer ReadImageMap(std::string mappath);
-	bool ReadSlidesDicoms();
 
 };
