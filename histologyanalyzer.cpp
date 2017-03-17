@@ -23,13 +23,22 @@ int main(int argc, char* argv[]) {
 		cout << "\tReading complete." << endl;
 	}
 
-	cout << "Analyzing voxels..." << endl;
-	if (!ha.GetVoxels()) {
-		cout << "\tAnalysis failed." << endl;
+	cout << "Reading histology dicoms..." << endl;
+	if (!ha.ReadImageHistoDicoms()) {
+		cout << "\tRead failed." << endl;
 		return EXIT_FAILURE;
 	}
 	else {
-		cout << "\tAnalysis complete." << endl;
+		cout << "\tRead complete." << endl;
+	}
+
+	cout << "Writing histology mask image..." << endl;
+	if (!ha.WriteImageMask()) {
+		cout << "\tWrite failed." << endl;
+		return EXIT_FAILURE;
+	}
+	else {
+		cout << "\tWrite complete." << endl;
 	}
 
 	return EXIT_SUCCESS;

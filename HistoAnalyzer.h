@@ -13,15 +13,14 @@
 
 class HistoAnalyzer {
 
-
-
 public:
-
-	typedef double VoxelType;
+	typedef float VoxelType;
 	typedef itk::Image<VoxelType, 3> ImageType;
 
 private:
 	std::string indir, dbpath, outdir;
+
+	ImageType::Pointer mask;
 
 	std::vector<std::string> slidepaths, mapnames, mappaths;
 	std::vector<ImageType::IndexType> g6, g7, pin, np;
@@ -29,12 +28,12 @@ private:
 	float *vg6, *vg7, *vpin, *vnp;
 
 public:
-
 	HistoAnalyzer(std::string indir, std::string dbpath, std::string outdir);
 
-	bool GetVoxels();
 	bool ReadDBMaps();
-	bool ReadImageHistoDicoms(ImageType::Pointer img, std::string mapname, float *v0, size_t *n0);
+	bool ReadImageHistoDicoms();
+	bool WriteVoxelArrays();
+	bool WriteImageMask();
 
 	ImageType::Pointer ReadImageMap(std::string mappath);
 

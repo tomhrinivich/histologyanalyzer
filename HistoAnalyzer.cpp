@@ -80,52 +80,28 @@ bool HistoAnalyzer::ReadDBMaps() {
 
 }
 
-bool HistoAnalyzer::GetVoxels() {
-
-	typedef itk::Image<float, 3>  MaskImageType;
-	typedef itk::ImageFileWriter<MaskImageType> WriterType;
-
-	HistoAnalyzer::ImageType::Pointer img = HistoAnalyzer::ImageType::New();
-
-	//create pointers for voxel values
-	float v0[3];
-	size_t n0;
+bool HistoAnalyzer::ReadImageHistoDicoms() {
 
 	//read first image for dimensions
-	img = HistoAnalyzer::ReadImageMap(mappaths[0]);
-	
+	HistoAnalyzer::ImageType::Pointer img;
+	try {
+		 img = HistoAnalyzer::ReadImageMap(mappaths[0]);
+	}
+	catch (itk::ExceptionObject & e) {
+		return false;
+	}
+
 	//allocate mask
-	MaskImageType::Pointer mask = MaskImageType::New();
+	mask = HistoAnalyzer::ImageType::New();
 	mask->SetRegions(img->GetLargestPossibleRegion());
 	mask->Allocate();
 	mask->SetOrigin(img->GetOrigin());
 	mask->SetDirection(img->GetDirection());
 	mask->SetSpacing(img->GetSpacing());
+	mask->FillBuffer(0.0);
+	mask->Update();
 
-	//determine indices of interest from histology
-	if (!HistoAnalyzer::ReadImageHistoDicoms(mask)) return false;
-
-	for (int i = 0; i < mapnames.size(); i++) {
-
-		img = HistoAnalyzer::ReadImageMap(mappaths[i]);
-
-		
-
-		//calculate mean values + SD
-
-		//write voxel values to disk
-
-		//write mean values to DB
-
-	}
-
-	return true;
-
-}
-
-bool HistoAnalyzer::ReadImageHistoDicoms(HistoAnalyzer::ImageType::Pointer mask) {
-
-	//file list
+	//histology dicom list
 	gdcm::Directory d;
 	if (d.Load(indir) < 1) return false;
 
@@ -141,9 +117,6 @@ bool HistoAnalyzer::ReadImageHistoDicoms(HistoAnalyzer::ImageType::Pointer mask)
 	typedef itk::Image<PixelType, 3> RGBImageType;
 	typedef itk::ImageFileReader<RGBImageType> ReaderType;
 	typedef itk::GDCMImageIO ImageIOType;
-
-	typedef itk::Image<float, 3>  MaskImageType;
-	typedef itk::ImageFileWriter<MaskImageType> WriterType;
 
 	//loop through slides
 	for (int i = 0; i < filenames.size(); i++) {
@@ -164,63 +137,126 @@ bool HistoAnalyzer::ReadImageHistoDicoms(HistoAnalyzer::ImageType::Pointer mask)
 		
 		img_s = reader->GetOutput();
 
-		//get image size
+		//loop through index values
 		RGBImageType::RegionType rgbregion = img_s->GetLargestPossibleRegion();
 		itk::ImageRegionIterator<RGBImageType> rgbimageiterator(img_s, rgbregion);
 
-
-
 		PixelType v;
-		RGBImageType::IndexType ind;
+		RGBImageType::IndexType ind0;
 		HistoAnalyzer::ImageType::IndexType ind1;
 		RGBImageType::PointType p;
-		std::stringstream ss;
-		std::string outFileName;
 		while (!rgbimageiterator.IsAtEnd())
 		{
 
 			v = rgbimageiterator.Get();
-			ind = rgbimageiterator.GetIndex();
+			ind0 = rgbimageiterator.GetIndex();
 
-			if(ind[1] <= 1600) {
-				if (v[1] == 128) {
-					img_s->TransformIndexToPhysicalPoint(ind, p);
-					img->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind, img->GetPixel(ind1));
+			if(ind0[1] <= 1600) {
+				if (v[0] == 51 && v[1] == 51 && v[2] == 51) {
+					img_s->TransformIndexToPhysicalPoint(ind0, p);
+					mask->TransformPhysicalPointToIndex(p, ind1);
+					mask->SetPixel(ind1, 1);
+				}
+				else if (v[0] == 0 && v[1] == 128 && v[2] == 0) {
+					img_s->TransformIndexToPhysicalPoint(ind0, p);
+					mask->TransformPhysicalPointToIndex(p, ind1);
+					mask->SetPixel(ind1, 2);
+				}
+				else if (v[0] == 128 && v[1] == 128 && v[2] == 128) {
+					img_s->TransformIndexToPhysicalPoint(ind0, p);
+					mask->TransformPhysicalPointToIndex(p, ind1);
+					mask->SetPixel(ind1, 4);
+				}
+				else if (v[0] == 0 && v[1] == 0 && v[2] == 0) {
+					img_s->TransformIndexToPhysicalPoint(ind0, p);
+					mask->TransformPhysicalPointToIndex(p, ind1);
+					mask->SetPixel(ind1, 0);
+				}
+				else if (v[0] > 0 || v[1] > 0 || v[2] > 0) {
+					img_s->TransformIndexToPhysicalPoint(ind0, p);
+					mask->TransformPhysicalPointToIndex(p, ind1);
+					mask->SetPixel(ind1, 1);
 				}
 				else {
-					mask->SetPixel(ind, 0);
+					img_s->TransformIndexToPhysicalPoint(ind0, p);
+					mask->TransformPhysicalPointToIndex(p, ind1);
+					mask->SetPixel(ind1, 0);
 				}
-			}
-			else {
-				mask->SetPixel(ind, 0);
 			}
 
 			++rgbimageiterator;
 
 		}
 
-		//export filename
-		ss.str(std::string());
-		ss << std::setw(2) << std::setfill('0') << i + 1;
-		outFileName = outdir + "\\" + mapname + ss.str() + ".nrrd";
+	}
 
-		WriterType::Pointer writer = WriterType::New();
-		writer->SetInput(mask);
-		writer->SetFileName(outFileName);
+	//loop through volume 
+	HistoAnalyzer::ImageType::RegionType maskregion = mask->GetLargestPossibleRegion();
+	itk::ImageRegionIterator<HistoAnalyzer::ImageType> maskiterator(mask, maskregion);
+	int v;
 
-		try {
-			writer->Update();
+	while (!maskiterator.IsAtEnd())
+	{
+
+		v = (int)maskiterator.Get();
+
+		switch (v) {
+		case 1:
+			np.push_back(maskiterator.GetIndex());
+		case 2:
+			g6.push_back(maskiterator.GetIndex());
+		case 3:
+			g7.push_back(maskiterator.GetIndex());
+		case 4:
+			pin.push_back(maskiterator.GetIndex());
 		}
-		catch (itk::ExceptionObject & e) {
-			return false;
-		}
 
+		++maskiterator;
 
 	}
 
 	return true; 
 
+}
+
+bool HistoAnalyzer::WriteVoxelArrays() {
+
+	//allocate memory to hold voxel values
+
+
+	for (int i = 0; i < mapnames.size(); i++) {
+
+		HistoAnalyzer::ImageType::Pointer img = HistoAnalyzer::ReadImageMap(mappaths[i]);
+
+		//calculate mean values + SD
+
+		//write voxel values to disk
+
+		//write mean values to DB
+
+	}
+
+	return true;
+
+}
+
+bool HistoAnalyzer::WriteImageMask() {
+
+	//write mask for debugging
+	typedef itk::ImageFileWriter<HistoAnalyzer::ImageType> WriterType;
+	WriterType::Pointer writer = WriterType::New();
+
+	writer->SetInput(mask);
+	writer->SetFileName(outdir + "\\histo_mask.nrrd");
+
+	try {
+		writer->Update();
+	}
+	catch (itk::ExceptionObject & e) {
+		return false;
+	}
+
+	return true;
 }
 
 
