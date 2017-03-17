@@ -50,6 +50,15 @@ int main(int argc, char* argv[]) {
 		cout << "\tWrite complete." << endl;
 	}
 
+	cout << "Writing stats to db..." << endl;
+	if (!ha.WriteDBMeanSD()) {
+		cout << "\tWrite failed." << endl;
+		return EXIT_FAILURE;
+	}
+	else {
+		cout << "\tWrite complete." << endl;
+	}
+
 	return EXIT_SUCCESS;
 
 }

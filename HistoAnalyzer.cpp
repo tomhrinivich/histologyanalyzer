@@ -241,7 +241,14 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 	if (np.size() > 10) vnp = (float*)calloc(np.size(), sizeof(float));
 	if (pin.size() > 10) vpin = (float*)calloc(pin.size(), sizeof(float));
 
-	float mg6, mg7, mpin, mnp, sg6, sg7, spin, snp;
+	mg6 = (float*)calloc(mapnames.size(), sizeof(float));
+	sg6 = (float*)calloc(mapnames.size(), sizeof(float));
+	mg7 = (float*)calloc(mapnames.size(), sizeof(float));
+	sg7 = (float*)calloc(mapnames.size(), sizeof(float));
+	mnp = (float*)calloc(mapnames.size(), sizeof(float));
+	snp = (float*)calloc(mapnames.size(), sizeof(float));
+	mpin = (float*)calloc(mapnames.size(), sizeof(float));
+	spin = (float*)calloc(mapnames.size(), sizeof(float));
 
 	for (int i = 0; i < mapnames.size(); i++) {
 
@@ -251,37 +258,57 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 			for (int i = 0; i < g6.size(); i++) {
 				vg6[i] = img->GetPixel(g6[i]);
 			}
-			mg6 = HistoAnalyzer::Mean<float>(vg6, g6.size());
-			sg6 = HistoAnalyzer::STD<float>(vg6, g6.size(), mg6);
+			mg6[i] = HistoAnalyzer::Mean<float>(vg6, g6.size());
+			sg6[i] = HistoAnalyzer::STD<float>(vg6, g6.size(), mg6[i]);
+
+			HistoAnalyzer::WriteVoxelsScalar(vg6, g6.size(), outdir + "\\" + mapnames[i] + "_g6.raw", outdir + "\\" + mapnames[i] + "_g6.txt");
+		}
+		else {
+			mg6[i] = 0;
+			sg6[i] = 0;
 		}
 
 		if (g7.size() > 10) {
 			for (int i = 0; i < g7.size(); i++) {
 				vg7[i] = img->GetPixel(g7[i]);
 			}
-			mg7 = HistoAnalyzer::Mean<float>(vg7, g7.size());
-			sg7 = HistoAnalyzer::STD<float>(vg7, g7.size(), mg7);
+			mg7[i] = HistoAnalyzer::Mean<float>(vg7, g7.size());
+			sg7[i] = HistoAnalyzer::STD<float>(vg7, g7.size(), mg7[i]);
+
+			HistoAnalyzer::WriteVoxelsScalar(vg6, g7.size(), outdir + "\\" + mapnames[i] + "_g7.raw", outdir + "\\" + mapnames[i] + "_g7.txt");
+		}
+		else {
+			mg7[i] = 0;
+			sg7[i] = 0;
 		}
 
 		if (np.size() > 10) {
 			for (int i = 0; i < np.size(); i++) {
 				vnp[i] = img->GetPixel(np[i]);
 			}
-			mnp = HistoAnalyzer::Mean<float>(vnp, np.size());
-			snp = HistoAnalyzer::STD<float>(vnp, np.size(), mnp);
+			mnp[i] = HistoAnalyzer::Mean<float>(vnp, np.size());
+			snp[i] = HistoAnalyzer::STD<float>(vnp, np.size(), mnp[i]);
+
+			HistoAnalyzer::WriteVoxelsScalar(vnp, np.size(), outdir + "\\" + mapnames[i] + "_np.raw", outdir + "\\" + mapnames[i] + "_np.txt");
+		}
+		else {
+			mnp[i] = 0;
+			snp[i] = 0;
 		}
 
 		if (pin.size() > 10) {
 			for (int i = 0; i < pin.size(); i++) {
 				vpin[i] = img->GetPixel(pin[i]);
 			}
-			mpin = HistoAnalyzer::Mean<float>(vpin, pin.size());
-			spin = HistoAnalyzer::STD<float>(vpin, pin.size(), mpin);
+			mpin[i] = HistoAnalyzer::Mean<float>(vpin, pin.size());
+			spin[i] = HistoAnalyzer::STD<float>(vpin, pin.size(), mpin[i]);
+
+			HistoAnalyzer::WriteVoxelsScalar(vpin, pin.size(), outdir + "\\" + mapnames[i] + "_pin.raw", outdir + "\\" + mapnames[i] + "_pin.txt");
 		}
-
-		//write voxel values to disk
-
-		//write mean values to DB
+		else {
+			mpin[i] = 0;
+			spin[i] = 0;
+		}
 
 	}
 
@@ -306,6 +333,172 @@ bool HistoAnalyzer::WriteImageMask() {
 	}
 
 	return true;
+}
+
+bool HistoAnalyzer::WriteDBMeanSD() {
+
+	//open headerdata.db
+	sqlite3 *db;
+	char *errmsg;
+	if (sqlite3_open(dbpath.c_str(), &db) != SQLITE_OK) {
+		sqlite3_close(db);
+		return false;
+	}
+
+	//create a temporalanalysis table
+	if (sqlite3_exec(db, "DROP TABLE IF EXISTS histologyanalysis;", NULL, 0, &errmsg) != SQLITE_OK) {
+		std::cerr << errmsg << std::endl;
+		sqlite3_close(db);
+		return  false;
+	}
+
+	char buffer0[] = "CREATE TABLE IF NOT EXISTS histologyanalysis ("
+		"MapName VARCHAR(256), "
+		"G6_VoxelPath VARCHAR(256), "
+		"G7_VoxelPath VARCHAR(256), "
+		"NP_VoxelPath VARCHAR(256), "
+		"PIN_VoxelPath VARCHAR(256), "
+		"G6_NumberVoxels INTEGER(16) DEFAULT 0, "
+		"G7_NumberVoxels INTEGER(16) DEFAULT 0, "
+		"NP_NumberVoxels INTEGER(16) DEFAULT 0, "
+		"PIN_NumberVoxels INTEGER(16) DEFAULT 0, "
+		"G6_Volume FLOAT DEFAULT 0.0, "
+		"G7_Volume FLOAT DEFAULT 0.0, "
+		"NP_Volume FLOAT DEFAULT 0.0, "
+		"PIN_Volume FLOAT DEFAULT 0.0, "
+		"G6_Mean FLOAT DEFAULT 0.0, "
+		"G7_Mean FLOAT DEFAULT 0.0, "
+		"NP_Mean FLOAT DEFAULT 0.0, "
+		"PIN_Mean FLOAT DEFAULT 0.0, "
+		"G6_SD FLOAT DEFAULT 0.0, "
+		"G7_SD FLOAT DEFAULT 0.0, "
+		"NP_SD FLOAT DEFAULT 0.0, "
+		"PIN_SD FLOAT DEFAULT 0.0"
+		");";
+
+	if (sqlite3_exec(db, buffer0, NULL, 0, &errmsg) != SQLITE_OK) {
+		std::cerr << errmsg << std::endl;
+		sqlite3_close(db);
+		return  false;
+	}
+
+	//insert
+	if (sqlite3_exec(db, "BEGIN TRANSACTION", NULL, NULL, &errmsg) != SQLITE_OK) {
+		std::cout << errmsg << std::endl;
+		sqlite3_close(db);
+		return  false;
+	}
+
+	//prepare insert statement
+	char buffer1[] = "INSERT INTO histologyanalysis ("
+		"MapName, "
+		"G6_VoxelPath, "
+		"G7_VoxelPath, "
+		"NP_VoxelPath, "
+		"PIN_VoxelPath, "
+		"G6_NumberVoxels, "
+		"G7_NumberVoxels, "
+		"NP_NumberVoxels, "
+		"PIN_NumberVoxels, "
+		"G6_Volume, "
+		"G7_Volume, "
+		"NP_Volume, "
+		"PIN_Volume, "
+		"G6_Mean, "
+		"G7_Mean, "
+		"NP_Mean, "
+		"PIN_Mean, "
+		"G6_SD, "
+		"G7_SD, "
+		"NP_SD, "
+		"PIN_SD"
+		") VALUES ("
+		"?1, "
+		"?2, "
+		"?3, "
+		"?4, "
+		"?5, "
+		"?6, "
+		"?7, "
+		"?8, "
+		"?9, "
+		"?10, "
+		"?11, "
+		"?12, "
+		"?13, "
+		"?14, "
+		"?15, "
+		"?16, "
+		"?17, "
+		"?18, "
+		"?19, "
+		"?20, "
+		"?21"
+		");";
+
+	sqlite3_stmt *stmt;
+	if (sqlite3_prepare_v2(db, buffer1, strlen(buffer1), &stmt, NULL) != SQLITE_OK) {
+		sqlite3_finalize(stmt);
+		sqlite3_close(db);
+		return false;
+	}
+
+	//calculate voxel volumes
+	HistoAnalyzer::ImageType::SpacingType s = mask->GetSpacing();
+
+	//step
+	for (int i = 0; i < mapnames.size(); i++) {
+
+		std::string pg6 = outdir + "\\" + mapnames[i] + "_g6.raw";
+		std::string pg7 = outdir + "\\" + mapnames[i] + "_g7.raw";
+		std::string pnp = outdir + "\\" + mapnames[i] + "_np.raw";
+		std::string ppin = outdir + "\\" + mapnames[i] + "_pin.raw";
+
+		sqlite3_bind_text(stmt, 1, mapnames[i].c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 2, pg6.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 3, pg7.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 4, pnp.c_str(), -1, SQLITE_TRANSIENT);
+		sqlite3_bind_text(stmt, 5, ppin.c_str(), -1, SQLITE_TRANSIENT);
+
+		sqlite3_bind_int(stmt, 6, g6.size());
+		sqlite3_bind_int(stmt, 7, g7.size());
+		sqlite3_bind_int(stmt, 8, np.size());
+		sqlite3_bind_int(stmt, 9, pin.size());
+
+		sqlite3_bind_double(stmt, 10, g6.size()*s[0]*s[1]*s[2]);
+		sqlite3_bind_double(stmt, 11, g7.size()*s[0] * s[1] * s[2]);
+		sqlite3_bind_double(stmt, 12, np.size()*s[0] * s[1] * s[2]);
+		sqlite3_bind_double(stmt, 13, pin.size()*s[0] * s[1] * s[2]);
+
+		sqlite3_bind_double(stmt, 14, mg6[i]);
+		sqlite3_bind_double(stmt, 15, mg7[i]);
+		sqlite3_bind_double(stmt, 16, mnp[i]);
+		sqlite3_bind_double(stmt, 17, mpin[i]);
+
+		sqlite3_bind_double(stmt, 18, sg6[i]);
+		sqlite3_bind_double(stmt, 19, sg7[i]);
+		sqlite3_bind_double(stmt, 20, snp[i]);
+		sqlite3_bind_double(stmt, 21, spin[i]);
+
+		if (sqlite3_step(stmt) != SQLITE_DONE) {
+			return false;
+		}
+
+		sqlite3_reset(stmt);
+
+	}
+
+	if (sqlite3_exec(db, "COMMIT TRANSACTION", NULL, NULL, &errmsg) != SQLITE_OK) {
+		std::cout << errmsg << std::endl;
+		sqlite3_close(db);
+		return  false;
+	}
+
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
+
+	return true;
+
 }
 
 
@@ -336,4 +529,31 @@ template<class T> T HistoAnalyzer::STD(T* voxels, size_t nvoxels, T mean) {
 		cumsum += pow(voxels[j] - mean, 2.0);
 	}
 	return sqrt(cumsum / (nvoxels - 1));
+}
+
+bool HistoAnalyzer::WriteVoxelsScalar(float * C, size_t n_v, std::string binaryfilename, std::string textfilename) {
+
+	std::ofstream ofs;
+
+	//text
+	ofs.open(textfilename);
+	if (ofs.is_open()) {
+		ofs << "nvoxels: " << n_v << std::endl;
+		ofs.close();
+	}
+	else {
+		return false;
+	}
+
+	//binary
+	ofs.open(binaryfilename, std::ios::binary);
+	if (ofs.is_open()) {
+		ofs.write(reinterpret_cast<char*>(C), n_v * sizeof(float));
+		ofs.close();
+	}
+	else {
+		return false;
+	}
+
+	return true;
 }

@@ -25,7 +25,7 @@ private:
 	std::vector<std::string> slidepaths, mapnames, mappaths;
 	std::vector<ImageType::IndexType> g6, g7, pin, np;
 
-	float *vg6, *vg7, *vpin, *vnp;
+	float *vg6, *vg7, *vpin, *vnp, *mg6, *mg7, *mpin, *mnp, *sg6, *sg7, *spin, *snp;
 
 public:
 	HistoAnalyzer(std::string indir, std::string dbpath, std::string outdir);
@@ -34,9 +34,11 @@ public:
 	bool ReadImageHistoDicoms();
 	bool WriteVoxelArrays();
 	bool WriteImageMask();
+	bool WriteDBMeanSD();
 
 	ImageType::Pointer ReadImageMap(std::string mappath);
 	template<class T> T Mean(T* voxels, size_t nvoxels);
 	template<class T> T STD(T* voxels, size_t nvoxels, T mean);
+	bool WriteVoxelsScalar(float * C, size_t n_v, std::string binaryfilename, std::string textfilename);
 
 };
