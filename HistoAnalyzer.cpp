@@ -163,12 +163,16 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 				else if (v[0] == 51 && v[1] == 51 && v[2] == 51) {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
 					mask->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind1, 1);
+					if (img->GetPixel(ind1) > -1.99) {
+						mask->SetPixel(ind1, 1);
+					}
 				}
 				else if (v[0] == 0 && v[1] == 128 && v[2] == 0) {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
 					mask->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind1, 2);
+					if (img->GetPixel(ind1) > -1.99) {
+						mask->SetPixel(ind1, 2);
+					}
 				}
 				else if (
 					(v[0] == 0 && v[1] == 255 && v[2] == 0) ||
@@ -183,17 +187,23 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 					) {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
 					mask->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind1, 3);
+					if (img->GetPixel(ind1) > -1.99) {
+						mask->SetPixel(ind1, 3);
+					}
 				}
 				else if (v[0] == 128 && v[1] == 128 && v[2] == 128) {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
 					mask->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind1, 4);
+					if (img->GetPixel(ind1) > -1.99) {
+						mask->SetPixel(ind1, 4);
+					}
 				}
 				else {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
 					mask->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind1, 1);
+					if (img->GetPixel(ind1) > -1.99) {
+						mask->SetPixel(ind1, 1);
+					}
 				}
 			}
 
