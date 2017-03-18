@@ -88,6 +88,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 		 img = HistoAnalyzer::ReadImageMap(mappaths[0]);
 	}
 	catch (itk::ExceptionObject & e) {
+		std::cerr << e.GetDescription() << std::endl;
 		return false;
 	}
 
@@ -132,6 +133,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 			reader->Update();
 		}
 		catch (itk::ExceptionObject & e) {
+			std::cerr << e.GetDescription() << std::endl;
 			return false;
 		}
 		
@@ -145,13 +147,14 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 		RGBImageType::IndexType ind0;
 		HistoAnalyzer::ImageType::IndexType ind1;
 		RGBImageType::PointType p;
+		RGBImageType::SizeType s = rgbregion.GetSize();
 		while (!rgbimageiterator.IsAtEnd())
 		{
 
 			v = rgbimageiterator.Get();
 			ind0 = rgbimageiterator.GetIndex();
 
-			if(ind0[1] <= 1600) {
+			if(ind0[1] < (s[1]-60)) {
 				if (v[0] == 0 && v[1] == 0 && v[2] == 0) {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
 					mask->TransformPhysicalPointToIndex(p, ind1);
@@ -329,6 +332,7 @@ bool HistoAnalyzer::WriteImageMask() {
 		writer->Update();
 	}
 	catch (itk::ExceptionObject & e) {
+		std::cerr << e.GetDescription() << std::endl;
 		return false;
 	}
 
