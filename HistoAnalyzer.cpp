@@ -102,6 +102,16 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 	mask->FillBuffer(0.0);
 	mask->Update();
 
+	//allocate pathology mask
+	HistoAnalyzer::ImageType::Pointer pathmask = HistoAnalyzer::ImageType::New();
+	pathmask->SetRegions(img->GetLargestPossibleRegion());
+	pathmask->Allocate();
+	pathmask->SetOrigin(img->GetOrigin());
+	pathmask->SetDirection(img->GetDirection());
+	pathmask->SetSpacing(img->GetSpacing());
+	pathmask->FillBuffer(0.0);
+	pathmask->Update();
+
 	//histology dicom list
 	gdcm::Directory d;
 	if (d.Load(indir) < 1) return false;
@@ -156,9 +166,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 
 			if(ind0[1] < (s[1]-60)) {
 				if (v[0] == 0 && v[1] == 0 && v[2] == 0) {
-					img_s->TransformIndexToPhysicalPoint(ind0, p);
-					mask->TransformPhysicalPointToIndex(p, ind1);
-					mask->SetPixel(ind1, 0);
+					
 				}
 				else if (v[0] == 51 && v[1] == 51 && v[2] == 51) {
 					img_s->TransformIndexToPhysicalPoint(ind0, p);
@@ -172,6 +180,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 					mask->TransformPhysicalPointToIndex(p, ind1);
 					if (img->GetPixel(ind1) > -1.99) {
 						mask->SetPixel(ind1, 2);
+						pathmask->SetPixel(ind1, 1);
 					}
 				}
 				else if (
@@ -212,12 +221,49 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 		}
 
 	}
+	
+	//dilate pathology by 2 mm
+	HistoAnalyzer::ImageType::SizeType si;
+	HistoAnalyzer::ImageType::SpacingType sp = mask->GetSpacing();
+	si[0] = round(2 / sp[0]);
+	si[1] = round(2 / sp[1]);
+	si[2] = round(2 / sp[2]);
 
-	//loop through volume 
+	//apply morphological expansion on mask
+	typedef itk::BinaryBallStructuringElement<HistoAnalyzer::ImageType::PixelType, 3> StructuringElementType;
+	StructuringElementType structuringElement;
+	structuringElement.SetRadius(si);
+	structuringElement.CreateStructuringElement();
+
+	typedef itk::BinaryDilateImageFilter <HistoAnalyzer::ImageType, HistoAnalyzer::ImageType, StructuringElementType> BinaryDilateImageFilterType;
+	BinaryDilateImageFilterType::Pointer dilateFilter = BinaryDilateImageFilterType::New();
+
+	dilateFilter->SetInput(pathmask);
+	dilateFilter->SetKernel(structuringElement);
+	dilateFilter->SetDilateValue(1);
+	dilateFilter->Update();
+	pathmask = dilateFilter->GetOutput();
+
+	//loop through masks, elimating normal tissue labels within 2 mm of pathologies
 	HistoAnalyzer::ImageType::RegionType maskregion = mask->GetLargestPossibleRegion();
-	itk::ImageRegionIterator<HistoAnalyzer::ImageType> maskiterator(mask, maskregion);
-	int v;
+	itk::ImageRegionIterator<HistoAnalyzer::ImageType> maskiterator(mask, maskregion);	
+	int v0, v1;
+	while (!maskiterator.IsAtEnd())
+	{
+		v0 = maskiterator.Get();
+		v1 = pathmask->GetPixel(maskiterator.GetIndex());
 
+		if (v0 == 1 && v1 == 1) {
+			maskiterator.Set(0);
+		}
+
+		++maskiterator;
+
+	}
+
+
+	int v;
+	maskiterator.GoToBegin();
 	while (!maskiterator.IsAtEnd())
 	{
 

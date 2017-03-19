@@ -8,6 +8,8 @@
 #include "itkImageFileWriter.h"
 #include "itkGDCMImageIO.h"
 #include "itkImageRegionIterator.h"
+#include "itkBinaryDilateImageFilter.h"
+#include "itkBinaryBallStructuringElement.h" 
 #include "gdcmScanner.h"
 #include "gdcmReader.h"
 
