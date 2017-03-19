@@ -198,6 +198,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 					mask->TransformPhysicalPointToIndex(p, ind1);
 					if (img->GetPixel(ind1) > -1.99) {
 						mask->SetPixel(ind1, 3);
+						pathmask->SetPixel(ind1, 1);
 					}
 				}
 				else if (v[0] == 128 && v[1] == 128 && v[2] == 128) {
@@ -205,6 +206,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 					mask->TransformPhysicalPointToIndex(p, ind1);
 					if (img->GetPixel(ind1) > -1.99) {
 						mask->SetPixel(ind1, 4);
+						pathmask->SetPixel(ind1, 1);
 					}
 				}
 				else {
