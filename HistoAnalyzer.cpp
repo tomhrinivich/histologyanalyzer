@@ -316,8 +316,13 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 		HistoAnalyzer::ImageType::Pointer img = HistoAnalyzer::ReadImageMap(mappaths[i]);
 
 		if (g6.size() > 10) {
-			for (int i = 0; i < g6.size(); i++) {
-				vg6[i] = img->GetPixel(g6[i]);
+			for (int j = 0; j < g6.size(); j++) {
+				vg6[j] = img->GetPixel(g6[j]);
+				//if (strcmp(mapnames[i].c_str(), "kep_nlrrm_c")==0 && vg6[j] < 0.0) {
+				//	float v = vg6[j];
+				//	HistoAnalyzer::ImageType::IndexType dbi = g6[j];
+				//	std::cout << vg6[j] << std::endl;
+				//}
 			}
 			mg6[i] = HistoAnalyzer::Mean<float>(vg6, g6.size());
 			sg6[i] = HistoAnalyzer::STD<float>(vg6, g6.size(), mg6[i]);
@@ -330,13 +335,18 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 		}
 
 		if (g7.size() > 10) {
-			for (int i = 0; i < g7.size(); i++) {
-				vg7[i] = img->GetPixel(g7[i]);
+			for (int j = 0; j < g7.size(); j++) {
+				vg7[j] = img->GetPixel(g7[j]);
+				//if (strcmp(mapnames[i].c_str(), "kep_nlrrm_c") == 0 && vg7[j] < 0.0) {
+				//	float v = vg7[j];
+				//	HistoAnalyzer::ImageType::IndexType dbi = g7[j];
+				//	std::cout << vg7[j] << std::endl;
+				//}
 			}
 			mg7[i] = HistoAnalyzer::Mean<float>(vg7, g7.size());
 			sg7[i] = HistoAnalyzer::STD<float>(vg7, g7.size(), mg7[i]);
 
-			HistoAnalyzer::WriteVoxelsScalar(vg6, g7.size(), outdir + "\\" + mapnames[i] + "_g7.raw", outdir + "\\" + mapnames[i] + "_g7.txt");
+			HistoAnalyzer::WriteVoxelsScalar(vg7, g7.size(), outdir + "\\" + mapnames[i] + "_g7.raw", outdir + "\\" + mapnames[i] + "_g7.txt");
 		}
 		else {
 			mg7[i] = 0;
@@ -344,8 +354,13 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 		}
 
 		if (np.size() > 10) {
-			for (int i = 0; i < np.size(); i++) {
-				vnp[i] = img->GetPixel(np[i]);
+			for (int j = 0; j < np.size(); j++) {
+				vnp[j] = img->GetPixel(np[j]);
+				//if (strcmp(mapnames[i].c_str(), "kep_nlrrm_c") == 0 && vnp[j] < 0.0) {
+				//	float v = vnp[j];
+				//	HistoAnalyzer::ImageType::IndexType dbi = np[j];
+				//	std::cout << vnp[j] << std::endl;
+				//}
 			}
 			mnp[i] = HistoAnalyzer::Mean<float>(vnp, np.size());
 			snp[i] = HistoAnalyzer::STD<float>(vnp, np.size(), mnp[i]);
@@ -358,8 +373,13 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 		}
 
 		if (pin.size() > 10) {
-			for (int i = 0; i < pin.size(); i++) {
-				vpin[i] = img->GetPixel(pin[i]);
+			for (int j = 0; j < pin.size(); j++) {
+				vpin[j] = img->GetPixel(pin[j]);
+				//if (strcmp(mapnames[i].c_str(), "kep_nlrrm_c") == 0 && vpin[j] < 0.0) {
+				//	float v = vpin[j];
+				//	HistoAnalyzer::ImageType::IndexType dbi = pin[j];
+				//	std::cout << pin[j] << std::endl;
+				//}
 			}
 			mpin[i] = HistoAnalyzer::Mean<float>(vpin, pin.size());
 			spin[i] = HistoAnalyzer::STD<float>(vpin, pin.size(), mpin[i]);
