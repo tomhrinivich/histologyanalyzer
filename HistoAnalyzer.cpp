@@ -36,6 +36,7 @@ bool HistoAnalyzer::ReadDBMaps() {
 		"ParameterMapName = 'kep_nlaif' OR "
 		"ParameterMapName = 've_nlaif' OR "
 		"ParameterMapName = 'r_nlaif' OR "
+		"ParameterMapName = 'threetimepoint' OR "
 		"ParameterMapName = 'cgrad_c' OR "
 		"ParameterMapName = 'ktrans_lrrm_c' OR "
 		"ParameterMapName = 'kep_lrrm_c' OR "
@@ -50,7 +51,8 @@ bool HistoAnalyzer::ReadDBMaps() {
 		"ParameterMapName = 'ktrans_nlaif_c' OR "
 		"ParameterMapName = 'kep_nlaif_c' OR "
 		"ParameterMapName = 've_nlaif_c' OR "
-		"ParameterMapName = 'r_nlaif_c';";
+		"ParameterMapName = 'r_nlaif_c' OR "
+		"ParameterMapName = 'threetimepoint_c';";
 
 
 	sqlite3_stmt *stmt;
@@ -84,6 +86,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 
 	//read first image for dimensions
 	HistoAnalyzer::ImageType::Pointer img;
+
 	try {
 		 img = HistoAnalyzer::ReadImageMap(mappaths[0]);
 	}
@@ -313,7 +316,13 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 
 	for (int i = 0; i < mapnames.size(); i++) {
 
-		HistoAnalyzer::ImageType::Pointer img = HistoAnalyzer::ReadImageMap(mappaths[i]);
+		HistoAnalyzer::ImageType::Pointer img;
+		if (strcmp(mapnames[i].c_str(), "threetimepoint_c") == 0 || strcmp(mapnames[i].c_str(), "threetimepoint") == 0) {
+			 img = HistoAnalyzer::ReadImage3TP(mappaths[i]);
+		}
+		else {
+			img = HistoAnalyzer::ReadImageMap(mappaths[i]);
+		}
 
 		if (g6.size() > 10) {
 			for (int j = 0; j < g6.size(); j++) {
@@ -593,6 +602,57 @@ HistoAnalyzer::ImageType::Pointer HistoAnalyzer::ReadImageMap(std::string mappat
 	reader->Update();
 
 	return reader->GetOutput();
+
+}
+
+HistoAnalyzer::ImageType::Pointer HistoAnalyzer::ReadImage3TP(std::string mappath) {
+
+	typedef itk::Vector<int, 3> VoxelType;
+	typedef itk::Image<VoxelType, 3> RGBImageType;
+	typedef itk::ImageFileReader<RGBImageType> ReaderType;
+	ReaderType::Pointer reader = ReaderType::New();
+
+	reader->SetFileName(mappath);
+	reader->Update();
+
+	RGBImageType::Pointer rgbimage = RGBImageType::New();
+	rgbimage = reader->GetOutput();
+
+	//convert from RGB to greyscale
+	HistoAnalyzer::ImageType::Pointer img = HistoAnalyzer::ImageType::New();
+	img->SetRegions(rgbimage->GetLargestPossibleRegion());
+	img->Allocate();
+	img->SetOrigin(rgbimage->GetOrigin());
+	img->SetDirection(rgbimage->GetDirection());
+	img->SetSpacing(rgbimage->GetSpacing());
+	img->FillBuffer(0.0);
+	img->Update();
+
+	RGBImageType::RegionType rgbregion = rgbimage->GetLargestPossibleRegion();
+	itk::ImageRegionIterator<RGBImageType> rgbimageiterator(rgbimage, rgbregion);
+
+	while (rgbimageiterator != rgbimageiterator.End()) {
+
+		VoxelType v = rgbimageiterator.Get();
+		float f = 0.0;
+
+		if (v[0] > 5) {
+			f = (v[0] / 255) + 2.0;
+			img->SetPixel(rgbimageiterator.GetIndex(), f);
+		}
+		else if (v[1] > 5) {
+			f = (v[1] / 255) + 1.0;
+			img->SetPixel(rgbimageiterator.GetIndex(), f);
+		}
+		else if (v[2] > 5) {
+			f = v[2] / 255;
+			img->SetPixel(rgbimageiterator.GetIndex(), f);
+		}
+
+		++rgbimageiterator;
+	}
+
+	return img;
 
 }
 

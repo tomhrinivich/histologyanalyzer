@@ -39,6 +39,7 @@ public:
 	bool WriteDBMeanSD();
 
 	ImageType::Pointer ReadImageMap(std::string mappath);
+	ImageType::Pointer ReadImage3TP(std::string mappath);
 	template<class T> T Mean(T* voxels, size_t nvoxels);
 	template<class T> T STD(T* voxels, size_t nvoxels, T mean);
 	bool WriteVoxelsScalar(float * C, size_t n_v, std::string binaryfilename, std::string textfilename);
