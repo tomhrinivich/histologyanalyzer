@@ -300,10 +300,13 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 bool HistoAnalyzer::WriteVoxelArrays() {
 
 	//allocate memory to hold voxel values
-	if (g6.size() > 10) vg6 = (float*)calloc(g6.size(), sizeof(float));
-	if (g7.size() > 10) vg7 = (float*)calloc(g7.size(), sizeof(float));
-	if (np.size() > 10) vnp = (float*)calloc(np.size(), sizeof(float));
-	if (pin.size() > 10) vpin = (float*)calloc(pin.size(), sizeof(float));
+	
+	HistoAnalyzer::ImageType::SpacingType si = mask->GetSpacing();
+
+	if (g6.size()*si[0] * si[1] > 1) vg6 = (float*)calloc(g6.size(), sizeof(float));
+	if (g7.size()*si[0] * si[1] > 1) vg7 = (float*)calloc(g7.size(), sizeof(float));
+	if (np.size()*si[0] * si[1] > 1) vnp = (float*)calloc(np.size(), sizeof(float));
+	if (pin.size()*si[0] * si[1] > 1) vpin = (float*)calloc(pin.size(), sizeof(float));
 
 	mg6 = (float*)calloc(mapnames.size(), sizeof(float));
 	sg6 = (float*)calloc(mapnames.size(), sizeof(float));
@@ -324,7 +327,9 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 			img = HistoAnalyzer::ReadImageMap(mappaths[i]);
 		}
 
-		if (g6.size() > 10) {
+		
+
+		if (g6.size()*si[0]*si[1] > 1) {
 			for (int j = 0; j < g6.size(); j++) {
 				vg6[j] = img->GetPixel(g6[j]);
 				//if (strcmp(mapnames[i].c_str(), "kep_nlrrm_c")==0 && vg6[j] < 0.0) {
@@ -343,7 +348,7 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 			sg6[i] = 0;
 		}
 
-		if (g7.size() > 10) {
+		if (g7.size()*si[0] * si[1] > 1) {
 			for (int j = 0; j < g7.size(); j++) {
 				vg7[j] = img->GetPixel(g7[j]);
 				//if (strcmp(mapnames[i].c_str(), "kep_nlrrm_c") == 0 && vg7[j] < 0.0) {
@@ -362,7 +367,7 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 			sg7[i] = 0;
 		}
 
-		if (np.size() > 10) {
+		if (np.size()*si[0] * si[1] > 1) {
 			for (int j = 0; j < np.size(); j++) {
 				vnp[j] = img->GetPixel(np[j]);
 				//if (strcmp(mapnames[i].c_str(), "kep_nlrrm_c") == 0 && vnp[j] < 0.0) {
@@ -381,7 +386,7 @@ bool HistoAnalyzer::WriteVoxelArrays() {
 			snp[i] = 0;
 		}
 
-		if (pin.size() > 10) {
+		if (pin.size()*si[0] * si[1] > 1) {
 			for (int j = 0; j < pin.size(); j++) {
 				vpin[j] = img->GetPixel(pin[j]);
 				//if (strcmp(mapnames[i].c_str(), "kep_nlrrm_c") == 0 && vpin[j] < 0.0) {
@@ -556,10 +561,10 @@ bool HistoAnalyzer::WriteDBMeanSD() {
 		sqlite3_bind_int(stmt, 8, np.size());
 		sqlite3_bind_int(stmt, 9, pin.size());
 
-		sqlite3_bind_double(stmt, 10, g6.size()*s[0]*s[1]*s[2]);
-		sqlite3_bind_double(stmt, 11, g7.size()*s[0] * s[1] * s[2]);
-		sqlite3_bind_double(stmt, 12, np.size()*s[0] * s[1] * s[2]);
-		sqlite3_bind_double(stmt, 13, pin.size()*s[0] * s[1] * s[2]);
+		sqlite3_bind_double(stmt, 10, g6.size()*s[0]*s[1]);
+		sqlite3_bind_double(stmt, 11, g7.size()*s[0] * s[1]);
+		sqlite3_bind_double(stmt, 12, np.size()*s[0] * s[1]);
+		sqlite3_bind_double(stmt, 13, pin.size()*s[0] * s[1]);
 
 		sqlite3_bind_double(stmt, 14, mg6[i]);
 		sqlite3_bind_double(stmt, 15, mg7[i]);
