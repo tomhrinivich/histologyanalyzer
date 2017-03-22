@@ -8,11 +8,11 @@ int main(int argc, char* argv[]) {
 
 	if (argc < 4)
 	{
-		cerr << "Usage: " << argv[0] << " ContourDicomDirectory DatabasePath OutputDirectory" << endl;
+		cerr << "Usage: " << argv[0] << " ContourDicomDirectory DatabasePath MaskPath OutputDirectory" << endl;
 		return EXIT_FAILURE;
 	}
 
-	HistoAnalyzer ha(argv[1], argv[2], argv[3]);
+	HistoAnalyzer ha(argv[1], argv[2], argv[3], argv[4]);
 
 	cout << "Reading parameter map db..." << endl;
 	if (!ha.ReadDBMaps()) {

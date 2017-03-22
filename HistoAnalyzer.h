@@ -20,7 +20,7 @@ public:
 	typedef itk::Image<VoxelType, 3> ImageType;
 
 private:
-	std::string indir, dbpath, outdir;
+	std::string indir, dbpath, maskpath, outdir;
 
 	ImageType::Pointer mask;
 
@@ -30,7 +30,7 @@ private:
 	float *vg6, *vg7, *vpin, *vnp, *mg6, *mg7, *mpin, *mnp, *sg6, *sg7, *spin, *snp;
 
 public:
-	HistoAnalyzer(std::string indir, std::string dbpath, std::string outdir);
+	HistoAnalyzer(std::string indir, std::string dbpath, std::string maskpath, std::string outdir);
 
 	bool ReadDBMaps();
 	bool ReadImageHistoDicoms();

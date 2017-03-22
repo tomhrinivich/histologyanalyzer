@@ -1,8 +1,9 @@
 #include "HistoAnalyzer.h"
 
-HistoAnalyzer::HistoAnalyzer(std::string indir, std::string dbpath, std::string outdir):
+HistoAnalyzer::HistoAnalyzer(std::string indir, std::string dbpath, std::string maskpath, std::string outdir):
 	indir(indir),
 	dbpath(dbpath),
+	maskpath(maskpath),
 	outdir(outdir){
 }
 
@@ -86,6 +87,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 
 	//read first image for dimensions
 	HistoAnalyzer::ImageType::Pointer img;
+	HistoAnalyzer::ImageType::Pointer prosmask;
 
 	try {
 		 img = HistoAnalyzer::ReadImageMap(mappaths[0]);
@@ -95,15 +97,27 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 		return false;
 	}
 
-	//allocate mask
-	mask = HistoAnalyzer::ImageType::New();
-	mask->SetRegions(img->GetLargestPossibleRegion());
-	mask->Allocate();
-	mask->SetOrigin(img->GetOrigin());
-	mask->SetDirection(img->GetDirection());
-	mask->SetSpacing(img->GetSpacing());
-	mask->FillBuffer(0.0);
-	mask->Update();
+	try {
+		prosmask = HistoAnalyzer::ReadImageMap(maskpath);
+	}
+	catch (itk::ExceptionObject & e) {
+		std::cerr << e.GetDescription() << std::endl;
+		return false;
+	}
+
+	//allocate histology mask
+	typedef itk::Vector<int, 4> HistVoxelType;
+	typedef itk::Image<HistVoxelType, 3> HistImageType;
+	HistVoxelType v00;
+	v00.Fill(0);
+	HistImageType::Pointer histmask = HistImageType::New();
+	histmask->SetRegions(img->GetLargestPossibleRegion());
+	histmask->Allocate();
+	histmask->SetOrigin(img->GetOrigin());
+	histmask->SetDirection(img->GetDirection());
+	histmask->SetSpacing(img->GetSpacing());
+	histmask->FillBuffer(v00);
+	histmask->Update();
 
 	//allocate pathology mask
 	HistoAnalyzer::ImageType::Pointer pathmask = HistoAnalyzer::ImageType::New();
@@ -114,6 +128,17 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 	pathmask->SetSpacing(img->GetSpacing());
 	pathmask->FillBuffer(0.0);
 	pathmask->Update();
+	
+	//allocate mask
+	mask = HistoAnalyzer::ImageType::New();
+	mask->SetRegions(img->GetLargestPossibleRegion());
+	mask->Allocate();
+	mask->SetOrigin(img->GetOrigin());
+	mask->SetDirection(img->GetDirection());
+	mask->SetSpacing(img->GetSpacing());
+	mask->FillBuffer(0.0);
+	mask->Update();
+
 
 	//histology dicom list
 	gdcm::Directory d;
@@ -157,6 +182,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 		itk::ImageRegionIterator<RGBImageType> rgbimageiterator(img_s, rgbregion);
 
 		PixelType v;
+		HistVoxelType hv;
 		RGBImageType::IndexType ind0;
 		HistoAnalyzer::ImageType::IndexType ind1;
 		RGBImageType::PointType p;
@@ -166,24 +192,15 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 
 			v = rgbimageiterator.Get();
 			ind0 = rgbimageiterator.GetIndex();
+			img_s->TransformIndexToPhysicalPoint(ind0, p);
+			histmask->TransformPhysicalPointToIndex(p, ind1);
+			hv = histmask->GetPixel(ind1);
 
 			if(ind0[1] < (s[1]-60)) {
-				if (v[0] == 0 && v[1] == 0 && v[2] == 0) {
-					
-				}
-				else if (v[0] == 51 && v[1] == 51 && v[2] == 51) {
-					img_s->TransformIndexToPhysicalPoint(ind0, p);
-					mask->TransformPhysicalPointToIndex(p, ind1);
+				if (v[0] == 0 && v[1] == 128 && v[2] == 0) {
 					if (img->GetPixel(ind1) > -1.99) {
-						mask->SetPixel(ind1, 1);
-					}
-				}
-				else if (v[0] == 0 && v[1] == 128 && v[2] == 0) {
-					img_s->TransformIndexToPhysicalPoint(ind0, p);
-					mask->TransformPhysicalPointToIndex(p, ind1);
-					if (img->GetPixel(ind1) > -1.99) {
-						mask->SetPixel(ind1, 2);
-						pathmask->SetPixel(ind1, 1);
+						hv[1]++;
+						histmask->SetPixel(ind1, hv);
 					}
 				}
 				else if (
@@ -197,26 +214,21 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 					(v[0] == 26 && v[1] == 26 && v[2] == 255) ||
 					(v[0] == 102 && v[1] == 102 && v[2] == 255)
 					) {
-					img_s->TransformIndexToPhysicalPoint(ind0, p);
-					mask->TransformPhysicalPointToIndex(p, ind1);
 					if (img->GetPixel(ind1) > -1.99) {
-						mask->SetPixel(ind1, 3);
-						pathmask->SetPixel(ind1, 1);
+						hv[2]++;
+						histmask->SetPixel(ind1, hv);
 					}
 				}
 				else if (v[0] == 128 && v[1] == 128 && v[2] == 128) {
-					img_s->TransformIndexToPhysicalPoint(ind0, p);
-					mask->TransformPhysicalPointToIndex(p, ind1);
 					if (img->GetPixel(ind1) > -1.99) {
-						mask->SetPixel(ind1, 4);
-						pathmask->SetPixel(ind1, 1);
+						hv[3]++;
+						histmask->SetPixel(ind1, hv);
 					}
 				}
 				else {
-					img_s->TransformIndexToPhysicalPoint(ind0, p);
-					mask->TransformPhysicalPointToIndex(p, ind1);
-					if (img->GetPixel(ind1) > -1.99) {
-						mask->SetPixel(ind1, 1);
+					if (prosmask->GetPixel(ind1) == 1) {
+						hv[0]++;
+						histmask->SetPixel(ind1, hv);
 					}
 				}
 			}
@@ -224,6 +236,33 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 			++rgbimageiterator;
 
 		}
+
+	}
+
+	//loop through mask/pathmask
+	HistImageType::RegionType histregion = histmask->GetLargestPossibleRegion();
+	itk::ImageRegionIterator<HistImageType> histiterator(histmask, histregion);
+	HistVoxelType hv;
+	while (!histiterator.IsAtEnd())
+	{
+		hv = histiterator.Get();
+
+		if (hv[0] > 0 && hv[1] == 0 && hv[2] == 0 && hv[3] == 0) {
+			mask->SetPixel(histiterator.GetIndex(), 1);
+		} else if (hv[1] > 0 && hv[1] > hv[0] && hv[1] > hv[2] && hv[1] > hv[3]) {
+			mask->SetPixel(histiterator.GetIndex(), 3);
+			pathmask->SetPixel(histiterator.GetIndex(), 1);
+		}
+		else if (hv[2] > 0 && hv[2] > hv[0] && hv[2] > hv[1] && hv[2] > hv[3]) {
+			mask->SetPixel(histiterator.GetIndex(), 4);
+			pathmask->SetPixel(histiterator.GetIndex(), 1);
+		}
+		else if (hv[3] > 0 && hv[3] > hv[0] && hv[3] > hv[2] && hv[3] > hv[1]) {
+			mask->SetPixel(histiterator.GetIndex(), 2);
+			pathmask->SetPixel(histiterator.GetIndex(), 1);
+		}
+
+		++histiterator;
 
 	}
 	
@@ -279,13 +318,13 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 			np.push_back(maskiterator.GetIndex());
 			break;
 		case 2:
-			g6.push_back(maskiterator.GetIndex());
+			pin.push_back(maskiterator.GetIndex());
 			break;
 		case 3:
-			g7.push_back(maskiterator.GetIndex());
+			g6.push_back(maskiterator.GetIndex());
 			break;
 		case 4:
-			pin.push_back(maskiterator.GetIndex());
+			g7.push_back(maskiterator.GetIndex());
 			break;
 		}
 
