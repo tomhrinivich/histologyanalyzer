@@ -643,15 +643,15 @@ HistoAnalyzer::ImageType::Pointer HistoAnalyzer::ReadImage3TP(std::string mappat
 		float f = 0.0;
 
 		if (v[0] > 5) {
-			f = (v[0] / 255) + 2.0;
+			f = ((float)v[0] / 255.0) + 2.0;
 			img->SetPixel(rgbimageiterator.GetIndex(), f);
 		}
 		else if (v[1] > 5) {
-			f = (v[1] / 255) + 1.0;
+			f = ((float)v[1] / 255.0) + 1.0;
 			img->SetPixel(rgbimageiterator.GetIndex(), f);
 		}
 		else if (v[2] > 5) {
-			f = v[2] / 255;
+			f = (float)v[2] / 255.0;
 			img->SetPixel(rgbimageiterator.GetIndex(), f);
 		}
 
