@@ -140,6 +140,24 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 	mask->Update();
 
 
+	//transform file
+	std::string tfmdir = indir + "\\LinearTransform.tfm";
+	typedef itk::AffineTransform<double, 3> TransformType;
+	itk::TransformFileReader::Pointer tfmreader = itk::TransformFileReader::New();
+
+	tfmreader->SetFileName(tfmdir);
+
+	try {
+		tfmreader->Update();
+	}
+	catch (itk::ExceptionObject &e) {
+		std::cerr << e.GetDescription() << std::endl;
+	}
+
+	const itk::TransformFileReader::TransformListType * transforms = tfmreader->GetTransformList();
+	TransformType::Pointer tfm = static_cast<TransformType*>((*transforms->begin()).GetPointer());
+	itk::Transform<double, 3, 3>::Pointer tfm2 = tfm->GetInverseTransform();
+
 	//histology dicom list
 	gdcm::Directory d;
 	if (d.Load(indir) < 1) return false;
@@ -157,6 +175,10 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 	typedef itk::ImageFileReader<RGBImageType> ReaderType;
 	typedef itk::GDCMImageIO ImageIOType;
 
+	//apply transform
+	typedef itk::ResampleImageFilter<RGBImageType, RGBImageType> FilterType;
+	FilterType::Pointer filter;
+
 	//loop through slides
 	for (int i = 0; i < filenames.size(); i++) {
 
@@ -166,7 +188,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 		
 		reader->SetFileName(filenames[i]);
 		reader->SetImageIO(gdcmImageIO);
-		
+
 		try {
 			reader->Update();
 		}
@@ -176,6 +198,26 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 		}
 		
 		img_s = reader->GetOutput();
+		//RGBImageType::SizeType rfsize = img_s->GetLargestPossibleRegion().GetSize();
+
+		//filter = FilterType::New();
+		//filter->SetInput(img_s);
+		//filter->SetSize(rfsize);
+		//filter->SetOutputParametersFromImage(img_s);
+		////filter->SetOutputSpacing(img_s->GetSpacing());
+		////filter->SetOutputDirection(img_s->GetDirection());
+		////filter->SetOutputOrigin(img_s->GetOrigin());
+		//filter->SetTransform(tfm);
+
+		//try {
+		//	filter->Update();
+		//}
+		//catch (itk::ExceptionObject & e) {
+		//	std::cerr << e.GetDescription() << std::endl;
+		//	return false;
+		//}
+
+		//img_s = filter->GetOutput();
 
 		//loop through index values
 		RGBImageType::RegionType rgbregion = img_s->GetLargestPossibleRegion();
@@ -185,7 +227,7 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 		HistVoxelType hv;
 		RGBImageType::IndexType ind0;
 		HistoAnalyzer::ImageType::IndexType ind1;
-		RGBImageType::PointType p;
+		RGBImageType::PointType p, pt;
 		RGBImageType::SizeType s = rgbregion.GetSize();
 		while (!rgbimageiterator.IsAtEnd())
 		{
@@ -193,7 +235,8 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 			v = rgbimageiterator.Get();
 			ind0 = rgbimageiterator.GetIndex();
 			img_s->TransformIndexToPhysicalPoint(ind0, p);
-			histmask->TransformPhysicalPointToIndex(p, ind1);
+			pt = tfm2->TransformPoint(p);
+			histmask->TransformPhysicalPointToIndex(pt, ind1);
 			hv = histmask->GetPixel(ind1);
 
 			if(ind0[1] < (s[1]-60)) {

@@ -10,6 +10,9 @@
 #include "itkImageRegionIterator.h"
 #include "itkBinaryDilateImageFilter.h"
 #include "itkBinaryBallStructuringElement.h" 
+#include "itkAffineTransform.h"
+#include "itkTransformFileReader.h"
+#include "itkResampleImageFilter.h"
 #include "gdcmScanner.h"
 #include "gdcmReader.h"
 
