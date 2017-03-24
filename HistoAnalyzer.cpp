@@ -292,15 +292,15 @@ bool HistoAnalyzer::ReadImageHistoDicoms() {
 
 		if (hv[0] > 0 && hv[1] == 0 && hv[2] == 0 && hv[3] == 0) {
 			mask->SetPixel(histiterator.GetIndex(), 1);
-		} else if (hv[1] > 0 && hv[1] > hv[0] && hv[1] > hv[2] && hv[1] > hv[3]) {
+		} else if (hv[1] > 1 && hv[1] > hv[2] && hv[1] > hv[3]) {
 			mask->SetPixel(histiterator.GetIndex(), 3);
 			pathmask->SetPixel(histiterator.GetIndex(), 1);
 		}
-		else if (hv[2] > 0 && hv[2] > hv[0] && hv[2] > hv[1] && hv[2] > hv[3]) {
+		else if (hv[2] > 1 && hv[2] > hv[1] && hv[2] > hv[3]) {
 			mask->SetPixel(histiterator.GetIndex(), 4);
 			pathmask->SetPixel(histiterator.GetIndex(), 1);
 		}
-		else if (hv[3] > 0 && hv[3] > hv[0] && hv[3] > hv[2] && hv[3] > hv[1]) {
+		else if (hv[3] > 1 && hv[3] > hv[2] && hv[3] > hv[1]) {
 			mask->SetPixel(histiterator.GetIndex(), 2);
 			pathmask->SetPixel(histiterator.GetIndex(), 1);
 		}
